@@ -4,6 +4,21 @@ const session = require("express-session");
 const flash = require("connect-flash");
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose"); // 1. Added Mongoose dependency
+
+// ============================================================
+// 🌱 DATABASE CONNECTION (Connects to MongoDB Atlas / Local)
+// ============================================================
+// Grab the live database URL from your Render settings, or fallback to local MongoDB for offline work
+const dbUrl = process.env.ATLASDB_URL || "mongodb://127.0.0.1:27017/majorproject";
+
+mongoose.connect(dbUrl)
+  .then(() => {
+    console.log("Connected to MongoDB Atlas successfully! 🌱");
+  })
+  .catch((err) => {
+    console.error("Database Connection Error: ❌", err.message);
+  });
 
 // ============================================================
 // 🛠️ SMART ROUTE LOADER (Prevents Case-Sensitivity Crashes)
