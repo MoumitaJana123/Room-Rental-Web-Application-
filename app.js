@@ -24,7 +24,7 @@ const User = require("./models/user.js");
 const listingRouter = require("./routes/listing.js");
 const reviewsRouter = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
-const bookingRoutes = require("./routes/booking");
+const bookingRoutes = require("./routes/booking.js");
 
 // ============================================================
 // 🌱 DATABASE CONNECTION (Connects to MongoDB Atlas / Local)
