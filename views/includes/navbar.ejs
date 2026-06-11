@@ -34,14 +34,16 @@
       </div>
 
       <div class="navbar-nav ms-auto">
-        <form action="/listings/search" method="GET" class="d-flex">
-          <input class="form-control me-2 search-inp" type="search" name="q" placeholder="Search destinations" />
-          <button class="btn search-btn" type="submit">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            Search
-          </button>
-        </form>
-      </div>
+    <% if (!currUser) { %>
+        <a class="nav-link" href="/signup"><b>Sign Up</b></a>
+        <a class="nav-link" href="/login"><b>Log in</b></a>
+    <% } else { %>
+        <% if (currUser.role === 'host') { %>
+            <a class="nav-link" href="/listings/new"><b>Add new Listing</b></a>
+        <% } %>
+        <a class="nav-link" href="/logout"><b>Log Out</b></a>
+    <% } %>
+</div>
 
       <div class="navbar-nav ms-auto">
         <% if(!currUser) { %>
