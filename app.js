@@ -31,24 +31,12 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local");
 
 // ======================================================
-// DATABASE CONNECTION
+// DATABASE CONNECTION STRING
 // ======================================================
 
 const MONGO_URL =
     process.env.ATLASDB_URL ||
     "mongodb://127.0.0.1:27017/rental";
-
-async function main() {
-    await mongoose.connect(MONGO_URL);
-}
-
-main()
-    .then(() => {
-        console.log("MongoDB Connected Successfully");
-    })
-    .catch((err) => {
-        console.log("MongoDB Error:", err);
-    });
 
 // ======================================================
 // VIEW ENGINE
@@ -63,12 +51,9 @@ app.engine("ejs", ejsMate);
 // ======================================================
 
 app.use(cors());
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
 app.use(methodOverride("_method"));
-
 app.use(express.static(path.join(__dirname, "public")));
 
 // ======================================================
@@ -77,6 +62,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const store = MongoStore.create({
     mongoUrl: MONGO_URL,
+    crypto: {
+        secret: process.env.SESSION_SECRET || "mysupersecretcode",
+    },
 });
 
 store.on("error", (err) => {
@@ -90,9 +78,7 @@ const sessionOptions = {
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        expires: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-        ),
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
         maxAge: 7 * 24 * 60 * 60 * 1000,
     },
 };
@@ -107,10 +93,7 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.use(
-    new LocalStrategy(User.authenticate())
-);
-
+passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
@@ -126,40 +109,15 @@ app.use((req, res, next) => {
 });
 
 // ======================================================
-// VALIDATION
-// ======================================================
-
-const validateListing = (req, res, next) => {
-    const { error } = listingSchema.validate(req.body);
-
-    if (error) {
-        const errMsg = error.details
-            .map((el) => el.message)
-            .join(",");
-
-        throw new ExpressError(400, errMsg);
-    }
-
-    next();
-};
-
-// ======================================================
 // ROUTES
 // ======================================================
 
 app.use("/bookings", bookingRoutes);
-
 app.use("/listings", listingRouter);
-
-app.use(
-    "/listings/:id/reviews",
-    reviewsRouter
-);
-
+app.use("/listings/:id/reviews", reviewsRouter);
 app.use("/", userRouter);
 
-// Root Redirect
-
+// Root route
 app.get("/", (req, res) => {
     res.redirect("/listings");
 });
@@ -168,7 +126,7 @@ app.get("/", (req, res) => {
 // 404 HANDLER
 // ======================================================
 
-app.use((req, res, next) => {
+app.all("*", (req, res, next) => {
     next(new ExpressError(404, "Page Not Found"));
 });
 
@@ -177,28 +135,43 @@ app.use((req, res, next) => {
 // ======================================================
 
 app.use((err, req, res, next) => {
-    const {
-        statusCode = 500,
-        message = "Something went wrong",
-    } = err;
+    const { statusCode = 500, message = "Something went wrong" } = err;
 
     if (res.headersSent) {
         return next(err);
     }
 
-    res.status(statusCode).render("error.ejs", {
-        message,
-    });
+    res.status(statusCode).render("error.ejs", { message });
 });
 
 // ======================================================
-// SERVER
+// SERVER START (IMPORTANT FIX FOR RENDER)
 // ======================================================
 
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
-    console.log(
-        `Server running on port ${PORT}`
-    );
+// IMPORTANT: start server ONLY after MongoDB connects
+mongoose
+    .connect(MONGO_URL)
+    .then(() => {
+        console.log("MongoDB Connected Successfully");
+
+        app.listen(PORT, "0.0.0.0", () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.log("MongoDB Connection Error:", err);
+    });
+
+// ======================================================
+// DEBUG HELP (OPTIONAL BUT USEFUL)
+// ======================================================
+
+process.on("uncaughtException", (err) => {
+    console.log("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+    console.log("Unhandled Rejection:", err);
 });
